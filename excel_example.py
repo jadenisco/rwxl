@@ -6,9 +6,29 @@ Example of reading and writing Excel files using openpyxl
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 from datetime import datetime
+import argparse
+import logging
+
+# Files
+root_files = './files/'
+
+# Log files
+log_file = root_files + 'log.txt'
+
+# Debug
+dry_run = False
+
+def setup_debug():
+    """Setup logging for debug mode""" 
+    logger = logging.getLogger("")
+    logging.basicConfig(level=logging.DEBUG)
+    handler = logging.FileHandler(log_file)
+    formatter = logging.Formatter("%(asctime)s %(levelname)s : %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
-def write_excel_example():
+def write_excel_example(args):
     """Create and write data to an Excel file"""
     # Create a new workbook
     wb = Workbook()
@@ -44,15 +64,15 @@ def write_excel_example():
     ws.column_dimensions['D'].width = 20
     
     # Save the workbook
-    wb.save('example.xlsx')
+    wb.save('files/example.xlsx')
     print("✓ Excel file 'example.xlsx' created successfully")
 
 
-def read_excel_example():
+def read_excel_example(args):
     """Read data from an Excel file"""
     try:
         # Load the workbook
-        wb = load_workbook('example.xlsx')
+        wb = load_workbook('files/example.xlsx')
         ws = wb.active
         
         print("\n✓ Reading from 'example.xlsx':")
@@ -69,14 +89,14 @@ def read_excel_example():
         print(f"Number of data rows: {ws.max_row - 1}")
         
     except FileNotFoundError:
-        print("Error: 'example.xlsx' not found. Please run write_excel_example() first.")
+        print("Error: 'files/example.xlsx' not found. Please run write_excel_example() first.")
 
 
-def update_excel_example():
+def update_excel_example(args):
     """Update existing Excel file"""
     try:
         # Load existing workbook
-        wb = load_workbook('example.xlsx')
+        wb = load_workbook('files/example.xlsx')
         ws = wb.active
         
         # Add a new row
@@ -86,15 +106,35 @@ def update_excel_example():
         ws['C2'] = "Los Angeles"  # Change Bob's city
         
         # Save changes
-        wb.save('example.xlsx')
+        wb.save('files/example.xlsx')
         print("\n✓ Excel file updated successfully")
         
     except FileNotFoundError:
-        print("Error: 'example.xlsx' not found.")
+        print("Error: 'files/example.xlsx' not found.")
 
 
-if __name__ == "__main__":
-    write_excel_example()
-    read_excel_example()
-    update_excel_example()
-    read_excel_example()  # Show updated data
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog='rwxl',
+                                        description='These functions will allow read and write excel files',
+                                        epilog='See "%(prog)s help COMMAND" for help on a specific command.')
+    parser.add_argument('--debug', '-d', action='count', help='Print debug output')
+    parser.add_argument('--dry-run', '-dr', action='count', help='Execute a dry run')
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+
+    write_parser = subparsers.add_parser('write', help='Write an Excel file')
+    write_parser.set_defaults(func=write_excel_example)
+    read_parser = subparsers.add_parser('read', help='Read an Excel file')
+    read_parser.set_defaults(func=read_excel_example)
+
+    args = parser.parse_args()
+
+    if args.debug:
+        setup_debug()
+
+    if args.dry_run:
+        dry_run = True
+
+    if args.command:
+        args.func(args)
+    else:
+        parser.print_help()
